@@ -6,8 +6,8 @@ import io.tapdata.entity.utils.DataMap;
 import io.tapdata.kit.EmptyKit;
 
 /**
- * @author Jarad
- * @date 2022/4/20
+ * @author IssaacWang
+ * @date 2022/10/08
  */
 public class TDengineColumn extends CommonColumn {
 
@@ -16,11 +16,11 @@ public class TDengineColumn extends CommonColumn {
     }
 
     public TDengineColumn(DataMap dataMap) {
-        this.columnName = dataMap.getString("column_name");
-        this.dataType = dataMap.getString("dataType"); //'dataType' with precision and scale (postgres has its function)
-//        this.dataType = dataMap.getString("data_type"); //'data_type' without precision or scale
-        this.nullable = dataMap.getString("is_nullable");
-        this.remarks = dataMap.getString("remark");
+        this.columnName = dataMap.getString("field");
+        this.dataType = dataMap.getString("type");
+//        this.dataType = dataMap.getString("data_type");
+//        this.nullable = dataMap.getString("is_nullable");
+        this.remarks = dataMap.getString("note");
         //create table in target has no need to set default value
         this.columnDefaultValue = null;
 //        this.columnDefaultValue = getDefaultValue(dataMap.getString("column_default"));

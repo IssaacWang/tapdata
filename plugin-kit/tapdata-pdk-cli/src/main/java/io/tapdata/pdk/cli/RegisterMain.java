@@ -32,8 +32,9 @@ public class RegisterMain {
 //        Clickhouse(BASE_PATH + "connectors/dist/clickhouse-connector-v1.0-SNAPSHOT.jar", "all", "clickhouse"),
 //        Redis(BASE_PATH + "connectors/dist/redis-connector-v1.0-SNAPSHOT.jar", "all", "redis"),
 //        Hive1(BASE_PATH + "connectors/dist/hive1-connector-v1.0-SNAPSHOT.jar", "all", "hive1"),
-        Coding(BASE_PATH + "connectors/dist/coding-connector-v1.0-SNAPSHOT.jar", "all", "coding"),
+//        Coding(BASE_PATH + "connectors/dist/coding-connector-v1.0-SNAPSHOT.jar", "all", "coding"),
 //        Mariadb(BASE_PATH + "connectors/dist/mariadb-connector-v1.0-SNAPSHOT.jar", "all", "mariadb"),
+        TDengine(BASE_PATH + "connectors/dist/tdengine-connector-v1.0-SNAPSHOT.jar", "all", "tdengine"),
 
         ;
 
@@ -72,8 +73,11 @@ public class RegisterMain {
         // -Dserver=http://192.168.1.181:31321
 
         List<String> postList = new ArrayList<>();
-        String server = System.getProperty("server", "http://localhost:3000");
-        Collections.addAll(postList, "register", "-a", "3324cfdf-7d3e-4792-bd32-571638d4562f", "-t", server);
+//        String server = System.getProperty("server", "http://localhost:3000");
+//        Collections.addAll(postList, "register", "-a", "3324cfdf-7d3e-4792-bd32-571638d4562f", "-t", server);
+
+        String server = System.getProperty("server", "https://uat.cloud.tapdata.net:9443/tm");
+        Collections.addAll(postList, "register", "-a", "3324cfdf-7d3e-4792-bd32-571638d4562f", "-ak", "81Hd8VFo8DrDGUZcooqRXLgFoa1TCzW5", "-sk", "bq3Jt6dYvQjI62OSN6m8Ry4JlVxKlPdJ", "-t", server);
 
         String[] tags = System.getProperty("tags", "all").split(",");
         ConnectorEnums.addByTags(postList, tags);
