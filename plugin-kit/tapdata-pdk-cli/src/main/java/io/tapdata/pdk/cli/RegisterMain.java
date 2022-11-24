@@ -18,27 +18,27 @@ public class RegisterMain {
 
     private enum ConnectorEnums {
 //        Empty(BASE_PATH + "connectors/dist/empty-connector-v1.1-SNAPSHOT.jar", false, "all", "empty"),
-        Dummy(BASE_PATH + "connectors/dist/dummy-connector-v1.0-SNAPSHOT.jar", false, "all", "dummy", "basic"),
-        Mysql(BASE_PATH + "connectors/dist/mysql-connector-v1.0-SNAPSHOT.jar", false, "all", "mysql", "basic", "jdbc"),
-        Postgres(BASE_PATH + "connectors/dist/postgres-connector-v1.0-SNAPSHOT.jar", false, "all", "postgres", "basic", "jdbc"),
-        Mongodb(BASE_PATH + "connectors/dist/mongodb-connector-v1.0-SNAPSHOT.jar", false, "all", "mongodb", "basic", "jdbc"),
-        Elasticsearch(BASE_PATH + "connectors/dist/elasticsearch-connector-v1.0-SNAPSHOT.jar", false, "all", "elasticsearch"),
-        Oceanbase(BASE_PATH + "connectors/dist/oceanbase-connector-v1.0-SNAPSHOT.jar", false, "all", "oceanbase"),
-        Doris(BASE_PATH + "connectors/dist/doris-connector-v1.0-SNAPSHOT.jar", false, "all", "doris"),
-        Activemq(BASE_PATH + "connectors/dist/activemq-connector-v1.0-SNAPSHOT.jar", false, "all", "activemq", "mq"),
-        Rabbitmq(BASE_PATH + "connectors/dist/rabbitmq-connector-v1.0-SNAPSHOT.jar", false, "all", "rabbitmq", "mq"),
-        Rocketmq(BASE_PATH + "connectors/dist/rocketmq-connector-v1.0-SNAPSHOT.jar", false, "all", "rocketmq", "mq"),
-        Kafka(BASE_PATH + "connectors/dist/kafka-connector-v1.0-SNAPSHOT.jar", false, "all", "kafka", "mq"),
-        Clickhouse(BASE_PATH + "connectors/dist/clickhouse-connector-v1.0-SNAPSHOT.jar", false, "all", "clickhouse"),
-        Redis(BASE_PATH + "connectors/dist/redis-connector-v1.0-SNAPSHOT.jar", false, "all", "redis"),
-        Hive1(BASE_PATH + "connectors/dist/hive1-connector-v1.0-SNAPSHOT.jar", false, "all", "hive1"),
-        Mariadb(BASE_PATH + "connectors/dist/mariadb-connector-v1.0-SNAPSHOT.jar", false, "all", "mariadb"),
-        Coding(BASE_PATH + "connectors/dist/coding-connector-v1.0-SNAPSHOT.jar", false, "all", "coding"),
-        ZoHo(BASE_PATH + "connectors/dist/zoho-connector-v1.0-SNAPSHOT.jar", false, "all", "zoho"),
-        Tidb(BASE_PATH + "connectors/dist/tidb-connector-v1.0-SNAPSHOT.jar", true, "all", "tidb"),
-        Tablestore(BASE_PATH + "connectors/dist/tablestore-connector-v1.0-SNAPSHOT.jar", false, "all", "tablestore"),
-        Custom(BASE_PATH + "connectors/dist/custom-connector-v1.0-SNAPSHOT.jar", false, "all", "custom"),
-        TDengine(BASE_PATH + "connectors/dist/tdengine-connector-v1.0-SNAPSHOT.jar", "all", "tdengine"),
+//        Dummy(BASE_PATH + "connectors/dist/dummy-connector-v1.0-SNAPSHOT.jar", false, "all", "dummy", "basic"),
+//        Mysql(BASE_PATH + "connectors/dist/mysql-connector-v1.0-SNAPSHOT.jar", false, "all", "mysql", "basic", "jdbc"),
+//        Postgres(BASE_PATH + "connectors/dist/postgres-connector-v1.0-SNAPSHOT.jar", false, "all", "postgres", "basic", "jdbc"),
+//        Mongodb(BASE_PATH + "connectors/dist/mongodb-connector-v1.0-SNAPSHOT.jar", false, "all", "mongodb", "basic", "jdbc"),
+//        Elasticsearch(BASE_PATH + "connectors/dist/elasticsearch-connector-v1.0-SNAPSHOT.jar", false, "all", "elasticsearch"),
+//        Oceanbase(BASE_PATH + "connectors/dist/oceanbase-connector-v1.0-SNAPSHOT.jar", false, "all", "oceanbase"),
+//        Doris(BASE_PATH + "connectors/dist/doris-connector-v1.0-SNAPSHOT.jar", false, "all", "doris"),
+//        Activemq(BASE_PATH + "connectors/dist/activemq-connector-v1.0-SNAPSHOT.jar", false, "all", "activemq", "mq"),
+//        Rabbitmq(BASE_PATH + "connectors/dist/rabbitmq-connector-v1.0-SNAPSHOT.jar", false, "all", "rabbitmq", "mq"),
+//        Rocketmq(BASE_PATH + "connectors/dist/rocketmq-connector-v1.0-SNAPSHOT.jar", false, "all", "rocketmq", "mq"),
+//        Kafka(BASE_PATH + "connectors/dist/kafka-connector-v1.0-SNAPSHOT.jar", false, "all", "kafka", "mq"),
+//        Clickhouse(BASE_PATH + "connectors/dist/clickhouse-connector-v1.0-SNAPSHOT.jar", false, "all", "clickhouse"),
+//        Redis(BASE_PATH + "connectors/dist/redis-connector-v1.0-SNAPSHOT.jar", false, "all", "redis"),
+//        Hive1(BASE_PATH + "connectors/dist/hive1-connector-v1.0-SNAPSHOT.jar", false, "all", "hive1"),
+//        Mariadb(BASE_PATH + "connectors/dist/mariadb-connector-v1.0-SNAPSHOT.jar", false, "all", "mariadb"),
+//        Coding(BASE_PATH + "connectors/dist/coding-connector-v1.0-SNAPSHOT.jar", false, "all", "coding"),
+//        ZoHo(BASE_PATH + "connectors/dist/zoho-connector-v1.0-SNAPSHOT.jar", false, "all", "zoho"),
+//        Tidb(BASE_PATH + "connectors/dist/tidb-connector-v1.0-SNAPSHOT.jar", true, "all", "tidb"),
+//        Tablestore(BASE_PATH + "connectors/dist/tablestore-connector-v1.0-SNAPSHOT.jar", false, "all", "tablestore"),
+//        Custom(BASE_PATH + "connectors/dist/custom-connector-v1.0-SNAPSHOT.jar", false, "all", "custom"),
+        TDengine(BASE_PATH + "connectors/dist/tdengine-connector-v1.0-SNAPSHOT.jar", false, "all", "tdengine"),
         ;
 
         private final String path;
@@ -98,9 +98,13 @@ public class RegisterMain {
         List<String> postList = new ArrayList<>();
         List<String> postBetaList;
         //String server = System.getProperty("server", "https://v3.test.cloud.tapdata.net/tm");
-        String server = System.getProperty("server", "http://localhost:3000");
+//        String server = System.getProperty("server", "http://localhost:3000");
         //String server = System.getProperty("server", "http://192.168.1.189:30205");
-        Collections.addAll(postList, "register", "-a", "3324cfdf-7d3e-4792-bd32-571638d4562f", "-ak", "", "-sk", "", "-t", server);
+//        Collections.addAll(postList, "register", "-a", "3324cfdf-7d3e-4792-bd32-571638d4562f", "-ak", "", "-sk", "", "-t", server);
+
+        String server = System.getProperty("server", "https://uat.cloud.tapdata.net:9443/tm");
+        Collections.addAll(postList, "register", "-a", "3324cfdf-7d3e-4792-bd32-571638d4562f", "-ak", "81Hd8VFo8DrDGUZcooqRXLgFoa1TCzW5", "-sk", "bq3Jt6dYvQjI62OSN6m8Ry4JlVxKlPdJ", "-t", server);
+
 
         postBetaList = new ArrayList<>(postList);
         String[] tags = System.getProperty("tags", "all").split(",");

@@ -55,7 +55,16 @@
           "x-index": 3,
           "required": true
         },
-        "username": {
+        "schema": {
+          "type": "string",
+          "title": "${database}",
+          "x-decorator": "FormItem",
+          "x-component": "Input",
+          "apiServerKey": "database_name",
+          "x-index": 3,
+          "required": true
+        },
+        "user": {
           "type": "string",
           "title": "${username}",
           "x-decorator": "FormItem",
@@ -225,6 +234,7 @@
       "password": "password",
       "addtionalString": "Connection Parameter String",
       "timezone": "timezone",
+      "timestamp": "timestamp field",
       "doc": "docs/tdengine_en_US.md"
     },
     "zh_CN": {
@@ -235,6 +245,7 @@
       "password": "密码",
       "addtionalString": "连接参数",
       "timezone": "时区",
+      "timestamp": "时间戳",
       "doc": "docs/tdengine_zh_CN.md"
     },
     "zh_TW": {
@@ -245,6 +256,7 @@
       "password": "密碼",
       "addtionalString": "連接參數",
       "timezone": "時區",
+      "timestamp": "時間戳",
       "doc": "docs/tdengine_zh_TW.md"
     }
   },

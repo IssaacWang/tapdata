@@ -2,8 +2,11 @@ package io.tapdata.connector.tdengine;
 
 import com.google.common.collect.Lists;
 import io.tapdata.base.ConnectorBase;
+import io.tapdata.common.CommonDbTest;
+import io.tapdata.common.CommonSqlMaker;
 import io.tapdata.common.DataSourcePool;
 import io.tapdata.connector.tdengine.bean.TDengineColumn;
+import io.tapdata.connector.tdengine.bean.TDengineOffset;
 import io.tapdata.connector.tdengine.config.TDengineConfig;
 import io.tapdata.connector.tdengine.ddl.TDengineDDLSqlGenerator;
 import io.tapdata.entity.codec.TapCodecsRegistry;
@@ -20,6 +23,7 @@ import io.tapdata.entity.simplify.TapSimplify;
 import io.tapdata.entity.simplify.pretty.BiClassHandlers;
 import io.tapdata.entity.utils.DataMap;
 import io.tapdata.entity.utils.cache.KVMap;
+import io.tapdata.kit.DbKit;
 import io.tapdata.kit.EmptyKit;
 import io.tapdata.pdk.apis.annotations.TapConnectorClass;
 import io.tapdata.pdk.apis.consumer.StreamReadConsumer;
@@ -31,12 +35,10 @@ import io.tapdata.pdk.apis.functions.connector.target.CreateTableOptions;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import static io.tapdata.entity.simplify.TapSimplify.index;
-import static io.tapdata.entity.simplify.TapSimplify.indexField;
 
 /**
  * @author IssaacWang
@@ -46,6 +48,7 @@ import static io.tapdata.entity.simplify.TapSimplify.indexField;
 public class TDengineConnector extends ConnectorBase {
     private static final String TAG = TDengineConnector.class.getSimpleName();
     private static final int MAX_FILTER_RESULT_SIZE = 100;
+    private static final int BATCH_ADVANCE_READ_LIMIT = 1000;
 
     private String version;
 
@@ -106,11 +109,14 @@ public class TDengineConnector extends ConnectorBase {
         connectorFunctions.supportCreateTableV2(this::createTable);
         connectorFunctions.supportDropTable(this::dropTable);
         connectorFunctions.supportClearTable(this::clearTable);
-//        connectorFunctions.supportBatchCount(this::batchCount);
-//        connectorFunctions.supportBatchRead(this::batchRead);
-//        connectorFunctions.supportStreamRead(this::streamRead);
-//        connectorFunctions.supportTimestampToStreamOffset(this::timestampToStreamOffset);
-//        connectorFunctions.supportQueryByAdvanceFilter(this::query);
+        connectorFunctions.supportBatchCount(this::batchCount);
+        connectorFunctions.supportBatchRead(this::batchRead);
+        connectorFunctions.supportStreamRead(this::streamRead);
+        connectorFunctions.supportTimestampToStreamOffset(this::timestampToStreamOffset);
+        // query
+        connectorFunctions.supportQueryByFilter(this::queryByFilter);
+        connectorFunctions.supportQueryByAdvanceFilter(this::queryByAdvanceFilter);
+
         connectorFunctions.supportWriteRecord(this::writeRecord);
 //        connectorFunctions.supportCreateIndex(this::createIndex);
         connectorFunctions.supportNewFieldFunction(this::fieldDDLHandler);
@@ -192,7 +198,34 @@ public class TDengineConnector extends ConnectorBase {
     }
 
     private void batchRead(TapConnectorContext tapConnectorContext, TapTable tapTable, Object offset, int batchSize, BiConsumer<List<TapEvent>, Object> consumer) throws Throwable {
-
+        TDengineOffset tdengineOffset;
+        //beginning
+        if (null == offset) {
+            tdengineOffset = new TDengineOffset(0L);
+        }
+        //with offset
+        else {
+            tdengineOffset = (TDengineOffset) offset;
+        }
+        String sql = "SELECT * FROM \"" + tdengineConfig.getSchema() + "\".\"" + tapTable.getId() + "\"" + " OFFSET " + tdengineOffset.getOffsetValue();
+        tdengineJdbcContext.query(sql, resultSet -> {
+            List<TapEvent> tapEvents = list();
+            //get all column names
+            List<String> columnNames = DbKit.getColumnsFromResultSet(resultSet);
+            while (isAlive() && resultSet.next()) {
+                tapEvents.add(insertRecordEvent(DbKit.getRowFromResultSet(resultSet, columnNames), tapTable.getId()));
+                if (tapEvents.size() == batchSize) {
+                    tdengineOffset.setOffsetValue(tdengineOffset.getOffsetValue() + batchSize);
+                    consumer.accept(tapEvents, tdengineOffset);
+                    tapEvents = list();
+                }
+            }
+            //last events those less than eventBatchSize
+            if (EmptyKit.isNotEmpty(tapEvents)) {
+                tdengineOffset.setOffsetValue(tdengineOffset.getOffsetValue() + tapEvents.size());
+                consumer.accept(tapEvents, tdengineOffset);
+            }
+        });
     }
 
     private void query(TapConnectorContext tapConnectorContext, TapAdvanceFilter tapAdvanceFilter, TapTable tapTable, Consumer<FilterResults> consumer) throws Throwable {
@@ -200,17 +233,14 @@ public class TDengineConnector extends ConnectorBase {
     }
 
     private void streamRead(TapConnectorContext tapConnectorContext, List<String> tables, Object offset, int batchSize, StreamReadConsumer consumer) throws Throwable {
-//        mysqlReader.readBinlog(tapConnectorContext, tables, offset, batchSize, DDL_PARSER_TYPE, consumer);
+
     }
 
     private long batchCount(TapConnectorContext tapConnectorContext, TapTable tapTable) throws Throwable {
-        int count = 0;
-        try {
-//            count = tdengineJdbcContext.count(tapTable.getName());
-        } catch (Exception e) {
-            throw new RuntimeException("Count table " + tapTable.getName() + " error: " + e.getMessage(), e);
-        }
-        return count;
+        AtomicLong count = new AtomicLong(0);
+        String sql = "SELECT COUNT(1) FROM \"" + tdengineConfig.getSchema() + "\".\"" + tapTable.getId() + "\"";
+        tdengineJdbcContext.queryWithNext(sql, resultSet -> count.set(resultSet.getLong(1)));
+        return count.get();
     }
 
     private TapRecordEvent tapRecordWrapper(TapConnectorContext tapConnectorContext, Map<String, Object> before, Map<String, Object> after, TapTable tapTable, String op) {
@@ -234,12 +264,42 @@ public class TDengineConnector extends ConnectorBase {
     }
 
     private Object timestampToStreamOffset(TapConnectorContext tapConnectorContext, Long startTime) throws Throwable {
-        return null;
-//        if (null == startTime) {
-//            return this.mysqlJdbcContext.readBinlogPosition();
-//        } else {
-//            throw new NotSupportedException();
-//        }
+        return new TDengineOffset();
+    }
+
+    //one filter can only match one record
+    private void queryByFilter(TapConnectorContext connectorContext, List<TapFilter> filters, TapTable tapTable, Consumer<List<FilterResult>> listConsumer) {
+        Set<String> columnNames = tapTable.getNameFieldMap().keySet();
+        List<FilterResult> filterResults = new LinkedList<>();
+        for (TapFilter filter : filters) {
+            String sql = "SELECT * FROM \"" + tdengineConfig.getSchema() + "\".\"" + tapTable.getId() + "\" WHERE " + CommonSqlMaker.buildKeyAndValue(filter.getMatch(), "AND", "=");
+            FilterResult filterResult = new FilterResult();
+            try {
+                tdengineJdbcContext.queryWithNext(sql, resultSet -> filterResult.setResult(DbKit.getRowFromResultSet(resultSet, columnNames)));
+            } catch (Throwable e) {
+                filterResult.setError(e);
+            } finally {
+                filterResults.add(filterResult);
+            }
+        }
+        listConsumer.accept(filterResults);
+    }
+
+    private void queryByAdvanceFilter(TapConnectorContext connectorContext, TapAdvanceFilter filter, TapTable table, Consumer<FilterResults> consumer) throws Throwable {
+        String sql = "SELECT * FROM \"" + tdengineConfig.getSchema() + "\".\"" + table.getId() + "\" " + CommonSqlMaker.buildSqlByAdvanceFilter(filter);
+        tdengineJdbcContext.query(sql, resultSet -> {
+            FilterResults filterResults = new FilterResults();
+            while (resultSet.next()) {
+                filterResults.add(DbKit.getRowFromResultSet(resultSet, DbKit.getColumnsFromResultSet(resultSet)));
+                if (filterResults.getResults().size() == BATCH_ADVANCE_READ_LIMIT) {
+                    consumer.accept(filterResults);
+                    filterResults = new FilterResults();
+                }
+            }
+            if (EmptyKit.isNotEmpty(filterResults.getResults())) {
+                consumer.accept(filterResults);
+            }
+        });
     }
 
     private void createIndex(TapConnectorContext tapConnectorContext, TapTable tapTable, TapCreateIndexEvent tapCreateIndexEvent) throws Throwable {
@@ -247,7 +307,7 @@ public class TDengineConnector extends ConnectorBase {
     }
 
     private void getTableNames(TapConnectionContext tapConnectionContext, int batchSize, Consumer<List<String>> listConsumer) {
-
+//        tdengineJdbcContext.queryAllTables(TapSimplify.list(), batchSize, listConsumer);
     }
 
     private void fieldDDLHandler(TapConnectorContext tapConnectorContext, TapFieldBaseEvent tapFieldBaseEvent) {
@@ -285,7 +345,6 @@ public class TDengineConnector extends ConnectorBase {
         tableLists.forEach(subList -> {
             List<TapTable> tapTableList = TapSimplify.list();
             List<String> subTableNames = subList.stream().map(v -> v.getString("table_name")).collect(Collectors.toList());
-            System.out.println(subTableNames.get(0));
             List<DataMap> columnList = tdengineJdbcContext.queryAllColumns(subTableNames);
 //            List<DataMap> indexList = tdengineJdbcContext.queryAllIndexes(subTableNames);
             //make up tapTable
@@ -328,41 +387,35 @@ public class TDengineConnector extends ConnectorBase {
 
     @Override
     public ConnectionOptions connectionTest(TapConnectionContext connectionContext, Consumer<TestItem> consumer) throws Throwable {
-        onStart(connectionContext);
+        tdengineConfig = (TDengineConfig) new TDengineConfig().load(connectionContext.getConnectionConfig());
         ConnectionOptions connectionOptions = ConnectionOptions.create();
-        TDengineConnectionTest tdengineConnectionTest = new TDengineConnectionTest(tdengineJdbcContext);
-        TestItem testHostPort = tdengineConnectionTest.testHostPort(connectionContext);
-        consumer.accept(testHostPort);
-        if (testHostPort.getResult() == TestItem.RESULT_FAILED) {
-            return null;
+        connectionOptions.connectionString(tdengineConfig.getConnectionString());
+        try (
+                TDengineTest tdengineTest = new TDengineTest(tdengineConfig)
+        ) {
+            TestItem testHostPort = tdengineTest.testHostPort();
+            consumer.accept(testHostPort);
+            if (testHostPort.getResult() == TestItem.RESULT_FAILED) {
+                return connectionOptions;
+            }
+            TestItem testConnect = tdengineTest.testConnect();
+            consumer.accept(testConnect);
+            if (testConnect.getResult() == TestItem.RESULT_FAILED) {
+                return connectionOptions;
+            }
+
+            return connectionOptions;
         }
-        TestItem testConnect = tdengineConnectionTest.testConnect();
-        consumer.accept(testConnect);
-        if (testConnect.getResult() == TestItem.RESULT_FAILED) {
-            return null;
-        }
-        TestItem testDatabaseVersion = tdengineConnectionTest.testDatabaseVersion();
-        consumer.accept(testDatabaseVersion);
-        if (testDatabaseVersion.getResult() == TestItem.RESULT_FAILED) {
-            return null;
-        }
-        TestItem binlogMode = tdengineConnectionTest.testBinlogMode();
-        TestItem binlogRowImage = tdengineConnectionTest.testBinlogRowImage();
-        TestItem cdcPrivileges = tdengineConnectionTest.testCDCPrivileges();
-        consumer.accept(binlogMode);
-        consumer.accept(binlogRowImage);
-        consumer.accept(cdcPrivileges);
-        consumer.accept(tdengineConnectionTest.testCreateTablePrivilege(connectionContext));
-//        if (binlogMode.isSuccess() && binlogRowImage.isSuccess() && cdcPrivileges.isSuccess()) {
-//            List<Capability> ddlCapabilities = DDLFactory.getCapabilities(DDL_PARSER_TYPE);
-//            ddlCapabilities.forEach(connectionOptions::capability);
-//        }
-        return connectionOptions;
     }
 
     @Override
     public int tableCount(TapConnectionContext connectionContext) throws Throwable {
-        return 0;
+        AtomicInteger tableCount = new AtomicInteger();
+        tdengineJdbcContext.queryWithNext(String.format("SELECT COUNT(1) FROM information_schema.ins_tables where db_name = '%s'", tdengineConfig.getSchema()), resultSet -> tableCount.set(resultSet.getInt(1)));
+        TapLogger.warn(TAG, "tableCount: " + tableCount.get());
+        return tableCount.get();
+//        return tdengineJdbcContext.queryAllTables(null).size();
+//        return 14;
     }
 
     private List<String> newField(TapFieldBaseEvent tapFieldBaseEvent, TapConnectorContext tapConnectorContext) {

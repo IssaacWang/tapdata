@@ -2,6 +2,7 @@ package io.tapdata.connector.tdengine.kit;
 
 import com.taosdata.jdbc.ColumnMetaData;
 import com.taosdata.jdbc.TSDBResultSet;
+import com.taosdata.jdbc.rs.RestfulResultSet;
 import com.zaxxer.hikari.pool.HikariProxyResultSet;
 import io.tapdata.entity.simplify.TapSimplify;
 import io.tapdata.entity.utils.DataMap;
@@ -64,6 +65,7 @@ public class TDengineDbKit {
             if (EmptyKit.isNotNull(resultSet)) {
                 for (String col : columnNames) {
                     map.put(col, getObject(resultSet, col));
+//                    map.put(col, resultSet.getObject(col));
                 }
                 return map;
             }
@@ -76,11 +78,44 @@ public class TDengineDbKit {
     public static Object getObject(ResultSet resultSet, String col) throws SQLException, NoSuchFieldException, IllegalAccessException {
         int columnIndex = resultSet.findColumn(col);
         int colType = getColType(resultSet, columnIndex);
+        /**
+         *     public static final int TSDB_DATA_TYPE_NULL = 0;
+         *     public static final int TSDB_DATA_TYPE_BOOL = 1;
+         *     public static final int TSDB_DATA_TYPE_TINYINT = 2;
+         *     public static final int TSDB_DATA_TYPE_SMALLINT = 3;
+         *     public static final int TSDB_DATA_TYPE_INT = 4;
+         *     public static final int TSDB_DATA_TYPE_BIGINT = 5;
+         *     public static final int TSDB_DATA_TYPE_FLOAT = 6;
+         *     public static final int TSDB_DATA_TYPE_DOUBLE = 7;
+         *     public static final int TSDB_DATA_TYPE_VARCHAR = 8;
+         *     public static final int TSDB_DATA_TYPE_BINARY = TSDB_DATA_TYPE_VARCHAR;
+         *     public static final int TSDB_DATA_TYPE_TIMESTAMP = 9;
+         *     public static final int TSDB_DATA_TYPE_NCHAR = 10;
+         *
+         *      * 系统增加新的无符号数据类型，分别是：
+         *      * unsigned tinyint， 数值范围：0-254, NULL 为255
+         *      * unsigned smallint，数值范围： 0-65534， NULL 为65535
+         *      * unsigned int，数值范围：0-4294967294，NULL 为4294967295u
+         *      * unsigned bigint，数值范围：0-18446744073709551614u，NULL 为18446744073709551615u。
+         *      * example:
+         *      * create table tb(ts timestamp, a tinyint unsigned, b smallint unsigned, c int unsigned, d bigint unsigned);
+         *
+         *      public static final int TSDB_DATA_TYPE_UTINYINT = 11;       //unsigned tinyint
+         *      public static final int TSDB_DATA_TYPE_USMALLINT = 12;      //unsigned smallint
+         *      public static final int TSDB_DATA_TYPE_UINT = 13;           //unsigned int
+         *      public static final int TSDB_DATA_TYPE_UBIGINT = 14;        //unsigned bigint
+         *      public static final int TSDB_DATA_TYPE_JSON = 15;           //json
+         */
         switch (colType) {
             case TSDB_DATA_TYPE_TINYINT:
             case TSDB_DATA_TYPE_SMALLINT:
             case TSDB_DATA_TYPE_INT:
-            case TSDB_DATA_TYPE_BIGINT: {
+            case TSDB_DATA_TYPE_BIGINT:
+            case TSDB_DATA_TYPE_UTINYINT:
+            case TSDB_DATA_TYPE_USMALLINT:
+            case TSDB_DATA_TYPE_UINT:
+            case TSDB_DATA_TYPE_UBIGINT:
+            {
                 return resultSet.getInt(columnIndex);
             }
             case TSDB_DATA_TYPE_FLOAT: {
@@ -88,6 +123,9 @@ public class TDengineDbKit {
             }
             case TSDB_DATA_TYPE_DOUBLE: {
                 return resultSet.getDouble(columnIndex);
+            }
+            case TSDB_DATA_TYPE_TIMESTAMP: {
+                return resultSet.getTimestamp(columnIndex);
             }
             case TSDB_DATA_TYPE_NCHAR:
             case TSDB_DATA_TYPE_BINARY:
@@ -100,11 +138,11 @@ public class TDengineDbKit {
     }
 
     public static int getColType(ResultSet resultSet, int columnIndex) throws NoSuchFieldException, IllegalAccessException, SQLException {
-        TSDBResultSet tsdbResultSet = resultSet.unwrap(TSDBResultSet.class);
-        Field field = tsdbResultSet.getClass().getDeclaredField("columnMetaDataList");
+        RestfulResultSet tsdbResultSet = resultSet.unwrap(RestfulResultSet.class);
+        Field field = tsdbResultSet.getClass().getDeclaredField("columns");
         field.setAccessible(Boolean.TRUE);
-        List<ColumnMetaData> columnMetaDataList = (List<ColumnMetaData>) field.get(tsdbResultSet);
-        return columnMetaDataList.get(columnIndex - 1).getColType();
+        List<RestfulResultSet.Field> columnMetaDataList = (List<RestfulResultSet.Field>) field.get(tsdbResultSet);
+        return columnMetaDataList.get(columnIndex - 1).getTaosType();
     }
 
     /**
