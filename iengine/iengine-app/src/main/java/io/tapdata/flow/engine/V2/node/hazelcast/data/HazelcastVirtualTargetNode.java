@@ -46,6 +46,7 @@ public class HazelcastVirtualTargetNode extends HazelcastDataBaseNode {
 			logger.error("Target process failed {}", e.getMessage(), e);
 			throw sneakyThrow(e);
 		} finally {
+			ThreadContext.clearAll();
 			logger.info("Target process finished, total {}", counter.get());
 			ThreadContext.clearAll();
 		}
