@@ -55,7 +55,16 @@
           "x-index": 3,
           "required": true
         },
-        "username": {
+        "schema": {
+          "type": "string",
+          "title": "${database}",
+          "x-decorator": "FormItem",
+          "x-component": "Input",
+          "apiServerKey": "database_name",
+          "x-index": 3,
+          "required": true
+        },
+        "user": {
           "type": "string",
           "title": "${username}",
           "x-decorator": "FormItem",
@@ -225,6 +234,7 @@
       "password": "password",
       "addtionalString": "Connection Parameter String",
       "timezone": "timezone",
+      "timestamp": "timestamp field",
       "doc": "docs/tdengine_en_US.md"
     },
     "zh_CN": {
@@ -235,6 +245,7 @@
       "password": "密码",
       "addtionalString": "连接参数",
       "timezone": "时区",
+      "timestamp": "时间戳字段",
       "doc": "docs/tdengine_zh_CN.md"
     },
     "zh_TW": {
@@ -245,6 +256,7 @@
       "password": "密碼",
       "addtionalString": "連接參數",
       "timezone": "時區",
+      "timestamp": "時間戳字段",
       "doc": "docs/tdengine_zh_TW.md"
     }
   },
@@ -253,12 +265,6 @@
       "to": "TapBoolean",
       "bit": 1,
       "priority": 1,
-      "fixed": true
-    },
-    "char[($byte)]": {
-      "to": "TapString",
-      "byte": 255,
-      "defaultByte": 1,
       "fixed": true
     },
     "varchar($byte)": {
@@ -281,7 +287,7 @@
       "defaultByte": 1,
       "fixed": true
     },
-    "tinyint[($zerofill)]": {
+    "tinyint": {
       "to": "TapNumber",
       "bit": 8,
       "precision": 3,
@@ -290,7 +296,7 @@
         127
       ]
     },
-    "tinyint[($zerofill)] unsigned": {
+    "tinyint unsigned": {
       "to": "TapNumber",
       "bit": 8,
       "precision": 3,
@@ -300,7 +306,7 @@
       ],
       "unsigned": "unsigned"
     },
-    "smallint[($zerofill)]": {
+    "smallint": {
       "to": "TapNumber",
       "bit": 16,
       "value": [
@@ -309,7 +315,7 @@
       ],
       "precision": 5
     },
-    "smallint[($zerofill)] unsigned": {
+    "smallint unsigned": {
       "to": "TapNumber",
       "bit": 16,
       "precision": 5,
@@ -319,7 +325,7 @@
       ],
       "unsigned": "unsigned"
     },
-    "int[($zerofill)]": {
+    "int": {
       "to": "TapNumber",
       "bit": 32,
       "precision": 10,
@@ -328,7 +334,7 @@
         2147483647
       ]
     },
-    "int[($zerofill)] unsigned": {
+    "int unsigned": {
       "to": "TapNumber",
       "bit": 32,
       "precision": 10,
@@ -337,7 +343,7 @@
         4294967295
       ]
     },
-    "bigint[($zerofill)]": {
+    "bigint": {
       "to": "TapNumber",
       "bit": 64,
       "precision": 19,
@@ -346,7 +352,7 @@
         9223372036854775807
       ]
     },
-    "bigint[($zerofill)] unsigned": {
+    "bigint unsigned": {
       "to": "TapNumber",
       "bit": 64,
       "precision": 20,
@@ -354,39 +360,6 @@
         0,
         18446744073709551615
       ]
-    },
-    "decimal[($precision,$scale)][unsigned]": {
-      "to": "TapNumber",
-      "precision": [
-        1,
-        65
-      ],
-      "scale": [
-        0,
-        30
-      ],
-      "defaultPrecision": 10,
-      "defaultScale": 0,
-      "unsigned": "unsigned",
-      "fixed": true
-    },
-    "float($precision,$scale)[unsigned]": {
-      "to": "TapNumber",
-      "name": "float",
-      "precision": [
-        1,
-        30
-      ],
-      "scale": [
-        0,
-        30
-      ],
-      "value": [
-        "-3.402823466E+38",
-        "3.402823466E+38"
-      ],
-      "unsigned": "unsigned",
-      "fixed": false
     },
     "float": {
       "to": "TapNumber",
@@ -414,24 +387,7 @@
       ],
       "fixed": false
     },
-    "double[($precision,$scale)][unsigned]": {
-      "to": "TapNumber",
-      "precision": [
-        1,
-        255
-      ],
-      "scale": [
-        0,
-        30
-      ],
-      "value": [
-        "-1.7976931348623157E+308",
-        "1.7976931348623157E+308"
-      ],
-      "unsigned": "unsigned",
-      "fixed": false
-    },
-    "timestamp[($fraction)]": {
+    "timestamp": {
       "to": "TapDateTime",
       "range": [
         "1970-01-01 00:00:01.000000",

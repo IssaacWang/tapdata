@@ -1,7 +1,7 @@
 {
   "connection": {
     "host": "127.0.0.1",
-    "port": 6030,
+    "port": 6041,
     "user": "root",
     "password": "taosdata",
     "database": "tdd",
@@ -10,7 +10,7 @@
     "addtionalString": ""
   },
   "node": {
-    "timestamp": "11111"
+
   },
   "test": {
     "pdkId" : "tdengine"
