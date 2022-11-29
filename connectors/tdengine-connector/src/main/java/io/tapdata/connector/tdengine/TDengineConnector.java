@@ -2,6 +2,7 @@ package io.tapdata.connector.tdengine;
 
 import com.google.common.collect.Lists;
 import io.tapdata.base.ConnectorBase;
+import io.tapdata.common.CommonDbTest;
 import io.tapdata.common.CommonSqlMaker;
 import io.tapdata.common.DataSourcePool;
 import io.tapdata.connector.tdengine.bean.TDengineColumn;
@@ -393,7 +394,6 @@ public class TDengineConnector extends ConnectorBase {
     public int tableCount(TapConnectionContext connectionContext) throws Throwable {
         AtomicInteger tableCount = new AtomicInteger();
         tdengineJdbcContext.queryWithNext(String.format("SELECT COUNT(1) FROM information_schema.ins_tables where db_name = '%s'", tdengineConfig.getDatabase()), resultSet -> tableCount.set(resultSet.getInt(1)));
-        TapLogger.warn(TAG, "tableCount: " + tableCount.get());
         return tableCount.get();
     }
 
