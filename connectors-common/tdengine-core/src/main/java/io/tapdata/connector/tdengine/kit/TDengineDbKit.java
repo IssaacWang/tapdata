@@ -1,9 +1,6 @@
 package io.tapdata.connector.tdengine.kit;
 
-import com.taosdata.jdbc.ColumnMetaData;
-import com.taosdata.jdbc.TSDBResultSet;
 import com.taosdata.jdbc.rs.RestfulResultSet;
-import com.zaxxer.hikari.pool.HikariProxyResultSet;
 import io.tapdata.entity.simplify.TapSimplify;
 import io.tapdata.entity.utils.DataMap;
 import io.tapdata.kit.EmptyKit;
@@ -19,8 +16,6 @@ import java.util.Collection;
 import java.util.List;
 
 import static com.taosdata.jdbc.TSDBConstants.*;
-import static com.taosdata.jdbc.utils.UnsignedDataUtils.*;
-import static com.taosdata.jdbc.utils.UnsignedDataUtils.parseUBigInt;
 
 /**
  * tools for ResultSet

@@ -22,8 +22,11 @@ import java.util.stream.Collectors;
 
 public class TDengineWriteRecorder extends WriteRecorder {
 
-    public TDengineWriteRecorder(Connection connection, TapTable tapTable, String schema) {
+    private final String timestampField;
+
+    public TDengineWriteRecorder(Connection connection, TapTable tapTable, String schema, String timestampField) {
         super(connection, tapTable, schema);
+        this.timestampField = timestampField;
     }
 
     @Override
@@ -52,67 +55,7 @@ public class TDengineWriteRecorder extends WriteRecorder {
 
     @Override
     public void addUpdateBatch(Map<String, Object> after) throws SQLException {
-        if (EmptyKit.isEmpty(after) || EmptyKit.isEmpty(uniqueCondition)) {
-            return;
-        }
-        Map<String, Object> before = new HashMap<>();
-        uniqueCondition.forEach(k -> before.put(k, after.get(k)));
-        if (updatePolicy.equals(ConnectionOptions.DML_UPDATE_POLICY_INSERT_ON_NON_EXISTS)) {
-            insertUpdate(after, before);
-        } else {
-            justUpdate(after, before);
-        }
-        preparedStatement.addBatch();
-    }
 
-    protected void justUpdate(Map<String, Object> after, Map<String, Object> before) throws SQLException {
-        if (EmptyKit.isNull(preparedStatement)) {
-            if (hasPk) {
-                preparedStatement = connection.prepareStatement("UPDATE \"" + schema + "\".\"" + tapTable.getId() + "\" SET " +
-                        after.keySet().stream().map(k -> "\"" + k + "\"=?").collect(Collectors.joining(", ")) + " WHERE " +
-                        before.keySet().stream().map(k -> "\"" + k + "\"=?").collect(Collectors.joining(" AND ")));
-            } else {
-                preparedStatement = connection.prepareStatement("UPDATE \"" + schema + "\".\"" + tapTable.getId() + "\" SET " +
-                        after.keySet().stream().map(k -> "\"" + k + "\"=?").collect(Collectors.joining(", ")) + " WHERE " +
-                        before.keySet().stream().map(k -> "(\"" + k + "\"=? OR (\"" + k + "\" IS NULL AND ?::text IS NULL))")
-                                .collect(Collectors.joining(" AND ")));
-            }
-        }
-        preparedStatement.clearParameters();
-        int pos = 1;
-        for (String key : after.keySet()) {
-            preparedStatement.setObject(pos++, after.get(key));
-        }
-        dealNullBefore(before, pos);
-    }
-
-    private void insertUpdate(Map<String, Object> after, Map<String, Object> before) throws SQLException {
-        if (EmptyKit.isNull(preparedStatement)) {
-            String updateSql;
-            if (hasPk) {
-                updateSql = "WITH upsert AS (UPDATE \"" + schema + "\".\"" + tapTable.getId() + "\" SET " + allColumn.stream().map(k -> "\"" + k + "\"=?")
-                        .collect(Collectors.joining(", ")) + " WHERE " + before.keySet().stream().map(k -> "\"" + k + "\"=?")
-                        .collect(Collectors.joining(" AND ")) + " RETURNING *) INSERT INTO \"" + schema + "\".\"" + tapTable.getId() + "\" ("
-                        + allColumn.stream().map(k -> "\"" + k + "\"").collect(Collectors.joining(", ")) + ") SELECT "
-                        + StringKit.copyString("?", allColumn.size(), ",") + " WHERE NOT EXISTS (SELECT * FROM upsert)";
-            } else {
-                updateSql = "WITH upsert AS (UPDATE \"" + schema + "\".\"" + tapTable.getId() + "\" SET " + allColumn.stream().map(k -> "\"" + k + "\"=?")
-                        .collect(Collectors.joining(", ")) + " WHERE " + before.keySet().stream().map(k -> "(\"" + k + "\"=? OR (\"" + k + "\" IS NULL AND ?::text IS NULL))")
-                        .collect(Collectors.joining(" AND ")) + " RETURNING *) INSERT INTO \"" + schema + "\".\"" + tapTable.getId() + "\" ("
-                        + allColumn.stream().map(k -> "\"" + k + "\"").collect(Collectors.joining(", ")) + ") SELECT "
-                        + StringKit.copyString("?", allColumn.size(), ",") + " WHERE NOT EXISTS (SELECT * FROM upsert)";
-            }
-            preparedStatement = connection.prepareStatement(updateSql);
-        }
-        preparedStatement.clearParameters();
-        int pos = 1;
-        for (String key : allColumn) {
-            preparedStatement.setObject(pos++, after.get(key));
-        }
-        dealNullBefore(before, pos);
-        for (String key : allColumn) {
-            preparedStatement.setObject(pos++, after.get(key));
-        }
     }
 
     @Override
@@ -124,17 +67,14 @@ public class TDengineWriteRecorder extends WriteRecorder {
             before.keySet().removeIf(k -> !uniqueCondition.contains(k));
         }
         if (EmptyKit.isNull(preparedStatement)) {
-            if (hasPk) {
-                preparedStatement = connection.prepareStatement("DELETE FROM \"" + schema + "\".\"" + tapTable.getId() + "\" WHERE " +
-                        before.keySet().stream().map(k -> "\"" + k + "\"=?").collect(Collectors.joining(" AND ")));
-            } else {
-                preparedStatement = connection.prepareStatement("DELETE FROM \"" + schema + "\".\"" + tapTable.getId() + "\" WHERE " +
-                        before.keySet().stream().map(k -> "(\"" + k + "\"=? OR (\"" + k + "\" IS NULL AND ?::text IS NULL))")
-                                .collect(Collectors.joining(" AND ")));
+            if (EmptyKit.isNotBlank(timestampField)) {
+
+                preparedStatement = connection.prepareStatement(String.format("DELETE FROM %s.%s WHERE %s='%s'",
+                        schema, tapTable.getId(), timestampField, before.get(timestampField)));
             }
         }
         preparedStatement.clearParameters();
-        dealNullBefore(before, 1);
+//        dealNullBefore(before, 1);
         preparedStatement.addBatch();
     }
 }
